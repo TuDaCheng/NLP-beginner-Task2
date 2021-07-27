@@ -6,8 +6,8 @@ import os
 import tensorflow as tf
 import tensorflow.contrib.keras as kr
 
-from cnn_model import TCNNConfig, TextCNN
-from data.cnews_loader import read_category, read_vocab
+from TextCNN_model import TCNNConfig, TextCNN
+from data_loder import read_category, read_vocab
 
 try:
     bool(type(unicode))

@@ -11,8 +11,8 @@ import numpy as np
 import tensorflow as tf
 from sklearn import metrics
 
-from rnn_model import TRNNConfig, TextRNN
-from data.cnews_loader import read_vocab, read_category, batch_iter, process_file, build_vocab
+from TextRNN_model import TRNNConfig, TextRNN
+from data_loder import read_vocab, read_category, batch_iter, process_file, build_vocab
 
 base_dir = 'data/cnews'
 train_dir = os.path.join(base_dir, 'cnews.train.txt')
@@ -179,21 +179,37 @@ def test():
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
 
+#
+# if __name__ == '__main__':
+#     if len(sys.argv) != 2 or sys.argv[1] not in ['train', 'test']:
+#         raise ValueError("""usage: python run_rnn.py [train / test]""")
+#
+#     print('Configuring RNN model...')
+#     config = TRNNConfig()
+#     if not os.path.exists(vocab_dir):  # 如果不存在词汇表，重建
+#         build_vocab(train_dir, vocab_dir, config.vocab_size)
+#     categories, cat_to_id = read_category()
+#     words, word_to_id = read_vocab(vocab_dir)
+#     config.vocab_size = len(words)
+#     model = TextRNN(config)
+#
+#     if sys.argv[1] == 'train':
+#         train()
+#     else:
+#         test()
+
+
+
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] not in ['train', 'test']:
-        raise ValueError("""usage: python run_rnn.py [train / test]""")
+    print("Configuring RNN model.....")
+    config=TRNNConfig()
+    if not os.path.exists(vocab_dir):
+        build_vocab(train_dir, vocab_dir,config.vocab_size)
+    categories,cat_to_id,id_to_cat=read_category()
+    words,word_to_id,id_to_word=read_vocab(vocab_dir)
+    config.vocab_size=len(words)
+    model=TextRNN(config)
 
-    print('Configuring RNN model...')
-    config = TRNNConfig()
-    if not os.path.exists(vocab_dir):  # 如果不存在词汇表，重建
-        build_vocab(train_dir, vocab_dir, config.vocab_size)
-    categories, cat_to_id = read_category()
-    words, word_to_id = read_vocab(vocab_dir)
-    config.vocab_size = len(words)
-    model = TextRNN(config)
-
-    if sys.argv[1] == 'train':
-        train()
-    else:
-        test()
+    train()
+    print("TextRNN 训练完成")

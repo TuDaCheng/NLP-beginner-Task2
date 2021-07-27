@@ -10,16 +10,19 @@ from datetime import timedelta
 
 import numpy as np
 import tensorflow as tf
+
 from sklearn import metrics
 
-from cnn_model import TCNNConfig, TextCNN
-from data.cnews_loader import read_vocab, read_category, batch_iter, process_file, build_vocab
+from TextCNN_model import TCNNConfig, TextCNN
+from data_loder import read_vocab, read_category, batch_iter, process_file, build_vocab
 
 base_dir = 'data/cnews'
 train_dir = os.path.join(base_dir, 'cnews.train.txt')
 test_dir = os.path.join(base_dir, 'cnews.test.txt')
 val_dir = os.path.join(base_dir, 'cnews.val.txt')
 vocab_dir = os.path.join(base_dir, 'cnews.vocab.txt')
+
+
 
 save_dir = 'checkpoints/textcnn'
 save_path = os.path.join(save_dir, 'best_validation')  # 最佳验证结果保存路径
@@ -31,7 +34,6 @@ def get_time_dif(start_time):
     time_dif = end_time - start_time
     return timedelta(seconds=int(round(time_dif)))
 
-
 def feed_data(x_batch, y_batch, keep_prob):
     feed_dict = {
         model.input_x: x_batch,
@@ -39,7 +41,6 @@ def feed_data(x_batch, y_batch, keep_prob):
         model.keep_prob: keep_prob
     }
     return feed_dict
-
 
 def evaluate(sess, x_, y_):
     """评估在某一数据上的准确率和损失"""
@@ -59,15 +60,6 @@ def evaluate(sess, x_, y_):
 
 def train():
     print("Configuring TensorBoard and Saver...")
-    # 配置 Tensorboard，重新训练时，请将tensorboard文件夹删除，不然图会覆盖
-    tensorboard_dir = 'tensorboard/textcnn'
-    if not os.path.exists(tensorboard_dir):
-        os.makedirs(tensorboard_dir)
-
-    tf.summary.scalar("loss", model.loss)
-    tf.summary.scalar("accuracy", model.acc)
-    merged_summary = tf.summary.merge_all()
-    writer = tf.summary.FileWriter(tensorboard_dir)
 
     # 配置 Saver
     saver = tf.train.Saver()
@@ -85,7 +77,7 @@ def train():
     # 创建session
     session = tf.Session()
     session.run(tf.global_variables_initializer())
-    writer.add_graph(session.graph)
+    # writer.add_graph(session.graph)
 
     print('Training and evaluating...')
     start_time = time.time()
@@ -101,10 +93,10 @@ def train():
         for x_batch, y_batch in batch_train:
             feed_dict = feed_data(x_batch, y_batch, config.dropout_keep_prob)
 
-            if total_batch % config.save_per_batch == 0:
+            # if total_batch % config.save_per_batch == 0:
                 # 每多少轮次将训练结果写入tensorboard scalar
-                s = session.run(merged_summary, feed_dict=feed_dict)
-                writer.add_summary(s, total_batch)
+                # s = session.run(merged_summary, feed_dict=feed_dict)
+                # writer.add_summary(s, total_batch)
 
             if total_batch % config.print_per_batch == 0:
                 # 每多少轮次输出在训练集和验证集上的性能
@@ -125,6 +117,12 @@ def train():
                 msg = 'Iter: {0:>6}, Train Loss: {1:>6.2}, Train Acc: {2:>7.2%},' \
                       + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}, Time: {5} {6}'
                 print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val, time_dif, improved_str))
+
+            checkpoint_dir=os.path.abspath(os.path.join(save_dir,"checkpoints"))
+            checkpoint_prefix=os.path.join(checkpoint_dir,"model")
+            if not os.path.exists(checkpoint_dir):
+                os.makedirs(checkpoint_dir)
+            saver=tf.train.Saver(tf.all_variables())
 
             session.run(model.optim, feed_dict=feed_dict)  # 运行优化
             total_batch += 1
@@ -182,19 +180,15 @@ def test():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] not in ['train', 'test']:
-        raise ValueError("""usage: python run_cnn.py [train / test]""")
-
-    print('Configuring CNN model...')
-    config = TCNNConfig()
-    if not os.path.exists(vocab_dir):  # 如果不存在词汇表，重建
+    print("Configuring CNN model...")
+    config=TCNNConfig()
+    if not os.path.exists(vocab_dir):
         build_vocab(train_dir, vocab_dir, config.vocab_size)
-    categories, cat_to_id = read_category()
-    words, word_to_id = read_vocab(vocab_dir)
-    config.vocab_size = len(words)
-    model = TextCNN(config)
 
-    if sys.argv[1] == 'train':
-        train()
-    else:
-        test()
+    categories,cat_to_id,id_to_cat=read_category()
+    words, word_to_id,id_to_word=read_vocab(vocab_dir)
+
+    config.vocab_size=len(words)
+    model=TextCNN(config)
+    train()
+    print("TextCNN 训练完成")
